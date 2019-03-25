@@ -1,0 +1,334 @@
+---
+title: "kuenm: example with C. mexicanus for the IBUNAM seminar"
+output:
+  html_document:
+      toc: yes
+      toc_depth: 4
+---
+
+The R markdown file is created in the working directory, and is designed to make the processes of model calibration and final model creation more reproducible.
+
+Information on using this R Markdown file:
+
+- Try executing code chunks by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*.
+- Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+A brief tutorial for using functions of the kuenm R package can be found in the <a href="https://github.com/marlonecobos/kuenm" target="_blank">package vignette</a>. Additionally, function help can be checked to change arguments according to specific needs.
+
+<br>
+
+### Candidate models
+
+Candidate models are a large set of candidate models created to respond to the need to test broad suites of parameter combinations, such as, distinct regularization multiplier values, various feature classes, and different sets of environmental variables. The following code calls the help page of the function kuenm_cal.
+
+```{r, eval=FALSE}
+library(kuenm)
+help(kuenm_cal)
+```
+
+<br>
+
+The next chunk of code is for preparing the arguments for using the function following the modularity principle. These variables can be changed according to each case.
+
+```{r, eval=FALSE}
+occ_joint <- "cmex_joint.csv"
+occ_tra <- "cmex_train.csv"
+M_var_dir <- "M_variables"
+batch_cal <- "Candidate_models"
+out_dir <- "Candidate_Models"
+reg_mult <- c(seq(0.1, 1, 0.3), seq(2, 4, 1))
+f_clas <- "no.t.h"
+background <- 10000
+maxent_path <- "C:/Maxent/3.4.1/"
+wait <- FALSE
+run <- TRUE
+```
+
+<br>
+
+The following is the code for using the function.
+
+```{r, eval=FALSE}
+kuenm_cal(occ.joint = occ_joint, occ.tra = occ_tra, M.var.dir = M_var_dir, batch = batch_cal,
+          out.dir = out_dir, reg.mult = reg_mult, f.clas = f_clas, background = background,
+          maxent.path = maxent_path, wait = wait, run = run)
+```
+
+<br>
+
+### Evaluation and selection of best models
+
+Evaluation is a crucial step in model calibration. This step centers on selecting candidate models and their associated parameters to identify the best models for the purposes of the study. The kuenm_ceval function evaluates candidate models based on three distinct criteria: statistical significance (based on partial ROC analyses), prediction ability (we use omission rates, but other metrics, such as overall correct classification rate, can also be used), and model complexity (here evaluated using AICc). The following code chunk calls the function help window.
+
+```{r, eval=FALSE}
+help(kuenm_ceval)
+```
+
+<br>
+
+Below, arguments for this functions will be defined.
+
+```{r, eval=FALSE}
+occ_test <- "cmex_test.csv"
+out_eval <- "Calibration_results"
+threshold <- 5
+rand_percent <- 50
+iterations <- 500
+kept <- TRUE
+selection <- "OR_AICc"
+paral_proc <- FALSE # make this true to perform MOP calculations in parallel, recommended
+                    # only if a powerfull computer is used (see function's help)
+# Note, some of the variables used here as arguments were already created for the previous function
+```
+
+<br>
+
+This code also allows evaluating candidate models that were created previously, selecting those with best performance based on the three criteria.
+
+```{r, eval=FALSE}
+cal_eval <- kuenm_ceval(path = out_dir, occ.joint = occ_joint, occ.tra = occ_tra, occ.test = occ_test,
+                        batch = batch_cal, out.eval = out_eval, threshold = threshold,
+                        rand.percent = rand_percent, iterations = iterations, kept = kept,
+                        selection = selection, parallel.proc = paral_proc)
+```
+
+<br>
+
+### Final model creation
+
+After selecting parametrizations that produce best models, the next step is to create the final models, and if needed transfer them to other environmental data sets (e.g., to other time periods or other geographic regions). The function help is called via this code:
+
+```{r, eval=FALSE}
+help(kuenm_mod)
+```
+
+<br>
+
+For preparing the arguments for this function use the following chunk of code.
+
+```{r, eval=FALSE}
+batch_fin <- "Final_models"
+mod_dir <- "Final_Models"
+rep_n <- 5
+rep_type <- "Bootstrap"
+jackknife <- TRUE
+out_format <- "logistic"
+project <- TRUE
+G_var_dir <- "G_variables"
+exts <- "all"
+wait1 <- FALSE
+run1 <- TRUE
+args <- NULL
+# Again, some of the variables used here as arguments were already created for the previous functions
+```
+
+<br>
+
+The kuenm_mod function has the following syntax:
+
+```{r, eval=FALSE}
+kuenm_mod(occ.joint = occ_joint, M.var.dir = M_var_dir, out.eval = out_eval, batch = batch_fin,
+          rep.n = rep_n, rep.type = rep_type, jackknife = jackknife, out.dir = mod_dir,
+          out.format = out_format, project = project, G.var.dir = G_var_dir, ext.type = exts, 
+          write.mess = FALSE, write.clamp = FALSE, maxent.path = maxent_path, args = args, wait = wait1, run = run1)
+```
+
+<br>
+
+### Model statistics across multiple parameter settings
+
+Function's help:
+
+```{r, eval=FALSE}
+help(kuenm_modstats)
+```
+
+<br>
+
+Preparing arguments:
+
+```{r, eval=FALSE}
+# other arguments were defined before
+sp_name <- "Cynomys_mexicanus"
+format <- "asc"
+stats <- c("med", "range")
+rep <- TRUE
+scenarios <- dir(path = "G_variables/Set_2/")
+ext_type <- "E" # the type of extrapolation can be selected according to user requirements 
+stats_dir <- "Final_Model_Stats"
+
+# argument "time.periods" is not included in the example but it can be used when models
+# are projected to more than one time period, other than current.
+```
+
+<br>
+
+The following lines will execute the function:
+
+```{r, eval=FALSE}
+kuenm_modstats(sp.name = sp_name, fmod.dir = mod_dir, format = format, project = project, 
+               statistics = stats, replicated = rep, proj.scenarios = scenarios, 
+               ext.type = ext_type, out.dir = stats_dir)
+```
+
+<br>
+
+### Changes of suitability and suitable areas between times
+
+Note: This function is useful only when models were projected in time.
+
+Function's help:
+
+```{r, eval=FALSE}
+help(kuenm_projchanges)
+```
+
+<br>
+
+Preparing arguments:
+
+```{r, eval=FALSE}
+# other arguments were defined before
+thres <- 5
+c_mods <- c("cc", "mc")
+changes_dir <- "Projection_Changes"
+````
+
+<br>
+
+The following lines will execute the function:
+
+```{r, eval=FALSE}
+kuenm_projchanges(occ = occ_joint, fmod.stats = stats_dir, threshold = thres, current = curr, 
+                  emi.scenarios = emi_scenarios, clim.models = c_mods, ext.type = ext_type, 
+                  out.dir = changes_dir)
+```
+
+<br>
+
+### Raster layers of variance coming from distinct sources
+
+Function's help:
+
+```{r, eval=FALSE}
+help(kuenm_modvar)
+```
+
+<br>
+
+Preparing arguments:
+
+```{r, eval=FALSE}
+# other arguments were defined before
+split <- 100
+variation_dir <- "Variation_from_sources"
+```
+
+<br>
+
+The following lines will execute the function:
+
+```{r, eval=FALSE}
+kuenm_modvar(sp.name = sp_name, fmod.dir = mod_dir, replicated = rep, format = format,  
+             project = project, current = curr, emi.scenarios = emi_scenarios, 
+             clim.models = c_mods, ext.type = ext_type, split.length = split, out.dir = variation_dir)
+```
+
+<br>
+
+### Hierarchical partitioning of the variance coming from distinct sources
+
+Function's help:
+
+```{r, eval=FALSE}
+help(kuenm_hierpart)
+``` 
+
+<br>
+
+Preparing arguments:
+
+```{r, eval=FALSE}
+# other arguments were defined before
+iter <- 100
+s_size <- 1000
+hierpart_dir <- "Hierarchical_partitioning"
+# argument "factors_col" is not defined here, but if default colors (grey scale) need to be changed, 
+# you can use this argument.
+```
+
+<br>
+
+The following lines will execute the function:
+
+```{r, eval=FALSE}
+kuenm_hierpart(sp.name = sp_name, fmod.dir = mod_dir, replicated = rep, format = format,  
+               project = project, current = curr, emi.scenarios = emi_scenarios,    
+               clim.models = c_mods, ext.type = ext_type, iterations = iter, 
+               sample.size = s_size, out.dir = hierpart_dir)
+```
+
+<br>
+
+### MOP analysis
+
+If transfers were performed when creating final models, the MOP analysis will help to identify areas of strict extrapolation and levels of similarity between the calibration area and the region or scenario of projection. The code below will help to see the function's documentation:
+
+```{r, eval=FALSE}
+help(kuenm_mmop)
+```
+
+<br>
+
+Below, arguments for this functions will be defined.
+
+```{r, eval=FALSE}
+# other arguments were defined before
+sets_var <- c("Set_2")
+out_mop <- "MOP_results"
+percent <- 5
+paral <- TRUE # make this true to perform MOP calculations in parallel, recommended
+               # only if a powerfull computer is used (see function's help)
+```
+
+<br>
+
+The kuenm_mmop function has the following syntax:
+
+```{r, eval=FALSE}
+kuenm_mmop(G.var.dir = G_var_dir, M.var.dir = M_var_dir, sets.var = sets_var,
+           out.mop = out_mop, percent = percent, parallel = paral)
+```
+
+<br>
+
+### Agreement of strict extrapolative areas
+
+Loading new function:
+
+```{r, eval=FALSE}
+source("https://raw.githubusercontent.com/marlonecobos/MNE_Curso_pract_calibration/master/kuenm_mopagree.R")
+```
+
+<br>
+
+Preparing arguments:
+
+```{r, eval=FALSE}
+# other arguments were defined before
+curr <- "current"
+emi_scenarios <- c("45", "85")
+out_magree <- "MOP_Agreement"
+
+# argument "time.periods" is not included in the example but it can be used when models
+# are projected to more than one time period, other than current.
+```
+
+<br>
+
+The following lines will execute the function:
+
+```{r, eval=FALSE}
+kuenm_mopagree(mop.dir = out_mop, current = curr, emi.scenarios = emi_scenarios, 
+               out.dir = out_magree)
+```
